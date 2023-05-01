@@ -11,7 +11,7 @@ library(ggplot2)
 
 start_time <- Sys.time()
 
-lpi_data_all <- read.csv("../Filtering time series/prepared_all_species_atleast2_1980.csv", na.strings = "NULL")
+lpi_data_all <- read.csv("../2 Filtering time series/prepared_all_species_atleast2_1980.csv", na.strings = "NULL")
 
 species_list <- unique(lpi_data_all$Species_id) # "ADPE", "CHPE", "GEPE"
 
@@ -77,13 +77,13 @@ for (sp_i in 1:length(species_list)){
 #
 # load in zstates with posterior mean and sd
 #
-adelie_z_df <- read.csv("../BSSM outputs/ADPE_abundance_lambda.csv", na.strings = "NULL")
-chinstrap_z_df <- read.csv("../BSSM outputs/CHPE_abundance_lambda.csv", na.strings = "NULL")
-gentoo_z_df <- read.csv("../BSSM outputs/GEPE_abundance_lambda.csv", na.strings = "NULL")
+adelie_z_df <- read.csv("../1 BSSM outputs/ADPE_abundance_lambda.csv", na.strings = "NULL")
+chinstrap_z_df <- read.csv("../1 BSSM outputs/CHPE_abundance_lambda.csv", na.strings = "NULL")
+gentoo_z_df <- read.csv("../1 BSSM outputs/GEPE_abundance_lambda.csv", na.strings = "NULL")
 all_species_z_df <- rbind(adelie_z_df, chinstrap_z_df, gentoo_z_df)
 #
 #
-iter_num <- 1000 ######
+iter_num <- 1000 ############################################################
 samppost_d <- array(NA, dim = c(length(species_list), length(region_list), max(unlist(species_regions_site_list_lengths)), length(years)))
 samppost_I_speciesregionlevel <- array(NA, dim = c(length(species_list), length(region_list), iter_num, length(years)))
 samppost_I_specieslevel <- array(NA, dim = c(length(species_list), iter_num, length(years)))
@@ -140,7 +140,8 @@ for (iter in 1:iter_num){
     # now for each spp, calculate d_bar(spp,t) & species-level index
     samppost_I_specieslevel[sp_i,iter,1] <- 1
     for (t in 2:length(years)){
-      samppost_d_bar_species[sp_i,t] <- (1/length(species_regions[[sp_i]]))*sum(samppost_d_bar_region[sp_i,,t]*region_weights, na.rm = TRUE)
+      # samppost_d_bar_species[sp_i,t] <- (1/length(species_regions[[sp_i]]))*sum(samppost_d_bar_region[sp_i,,t]*region_weights, na.rm = TRUE)
+      samppost_d_bar_species[sp_i,t] <- sum(samppost_d_bar_region[sp_i,,t]*region_weights, na.rm = TRUE)
       samppost_I_specieslevel[sp_i,iter,t] <- samppost_I_specieslevel[sp_i,iter,t-1]*10^(samppost_d_bar_species[sp_i,t])
     }
   }
@@ -204,7 +205,7 @@ LPI_df <- data.frame(LPI_final = mean_samppost_I_global, CI_low = lower_samppost
 
 # SPECIES LEVEL
 species_list_longname <- c("Adelie", "Chinstrap", "Gentoo")
-LPI_specieslevel_df <- data.frame()
+LPI_specieslevel_df <- data.frame(matrix(ncol = 9, nrow = 0))
 colnames_LPI_specieslevel_df <- c()
 for (sp_i in 1:length(species_list)){
   mean_samppost <- c()
@@ -337,7 +338,7 @@ breakpoints_global <- breakpoints[,2]
 
 # plot
 pdf(file="Figures/global_penguindex_plot_full.pdf")
-plot(years, samppost_I_global[1,], type = "l", col = alpha("gray", 0.075), ylim = c(0.90, 1.30), ylab = "Global Pygoscelis Penguindex", xlab = "Season", axes = FALSE)
+plot(years, samppost_I_global[1,], type = "l", col = alpha("gray", 0.075), ylim = c(0.75, 2.25), ylab = "Global Pygoscelis Penguindex", xlab = "Season", axes = FALSE)
 axis(1)
 axis(2)
 for (brkpt in 1:length(breakpoints[,2])){
@@ -362,9 +363,11 @@ for (sp_i in 1:length(species_list)){
   breakpoints <- os$psi
   breakpoints_species[[sp_i]] <- breakpoints[,2]
   
+  ylims <- list(c(0, 2.25), c(0, 2.25), c(0.5, 17.25)) 
+  
   # plot
   pdf(file=paste("Figures/",species_list[sp_i],"_penguindex_plot_full.pdf",sep=""))
-  plot(years, samppost_I_specieslevel[sp_i,1,], type = "l", col = alpha("gray", 0.075), ylim = c(min(0.90,min(LPI_specieslevel_df[,3*(sp_i-1)+2])*0.9),max(1.30,max(LPI_specieslevel_df[t,3*(sp_i-1)+3])*1.1)), ylab = paste("Global",species_list_longname[sp_i],"Penguindex",sep=" "), xlab = "Season", axes = FALSE)
+  plot(years, samppost_I_specieslevel[sp_i,1,], type = "l", col = alpha("gray", 0.075), ylim = ylims[[sp_i]], ylab = paste("Global",species_list_longname[sp_i],"Penguindex",sep=" "), xlab = "Season", axes = FALSE)
   axis(1)
   axis(2)
   for (brkpt in 1:length(breakpoints[,2])){
